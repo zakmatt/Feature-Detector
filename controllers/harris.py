@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 from controllers import *
 import cv2
+from math import atan2
 import numpy as np
+from numpy import linalg as LA
+from scipy.ndimage import filters
 
 class Harris(object):
     
@@ -10,14 +13,31 @@ class Harris(object):
         self.window_size = window_size
         self.sigma = sigma
     
+    def gradient_matrix(self):
+        h, w, _ = self.image.shape
+        self.gradient_matrix = np.zeros((h, w, 4))
+        for y in range(h):
+            for x in range(w):
+                d_x = float(self.I_x[y, x])
+                d_y = float(self.I_y[y, x])
+                
+                # for the position get length and the angle
+                # between derivatives in the range od -pi to pi
+                self.gradient_matrix[y, x] = [
+                        d_x,
+                        d_y,
+                        LA.norm([d_x, d_y]),
+                        atan2(d_y, d_x)
+                        ]
+    
     def harris_matrix(self):
         gray_image = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
-        I_x, I_y = compute_derivatives(gray_image)
-        I_xx = I_x ** 2
-        I_yy = I_y ** 2
-        I_xy = I_x * I_y
+        self.I_x, self.I_y = compute_derivatives(gray_image)
+        I_xx = self.I_x ** 2
+        I_yy = self.I_y ** 2
+        I_xy = self.I_x * self.I_y
         
-        h, w, _ = image.shape
+        h, w, _ = self.image.shape
         kernel = GaussianKernel(self.window_size, self.sigma)
         offset = self.window_size // 2
         corner_list = []
@@ -59,16 +79,14 @@ class Harris(object):
         max_x, max_y = np.nonzero(corners_map)
         indices = [pos for pos in zip(max_x, max_y)]
         self.colored_image = color_image(self.image, indices)
-        cv2.imwrite('result.png', self.colored_image)
+        # cv2.imwrite('result.png', self.colored_image)
         self.corner_list = corner_list
         self.corners_map = corners_map
-        # return corner_list, colored_image, tmp
     
 if __name__ == '__main__':
-    image = cv2.imread('../checkerboard.png')
+    #image = cv2.imread('../checkerboard.png')
+    image = cv2.imread('img1.ppm')
     gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     harris = Harris(image, 5, 30)
     harris.harris_matrix()
-    #c, colored_image, tmp = harris_matrix(image,
-    #                  5,
-    #                  30)
+    harris.gradient_matrix()

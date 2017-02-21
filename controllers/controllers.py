@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 from math import exp
-import matplotlib.pyplot as plt
 import numpy as np
 
 def GaussianKernel(size, sigma):
