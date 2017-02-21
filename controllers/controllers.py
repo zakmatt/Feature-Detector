@@ -50,28 +50,20 @@ def harris_matrix(image, window_size, sigma):
     
     h, w, _ = image.shape
     kernel = GaussianKernel(window_size, sigma)
-    offset = window_size // 2 + 1
+    offset = window_size // 2
     corner_list = []
     
     tmp = np.zeros((h,
                     w))
     
-    imgH = (I_xx * I_yy - I_xy**2) / (I_xx + I_yy + 1e-8)
-    maxH = filters.maximum_filter(imgH, (3,3))
-    imgH = imgH * (imgH == maxH)
-    max_y, max_x = np.nonzero(imgH)
-    ins = [pos for pos in zip(max_y, max_x)]
-    #c_img = color_image(image, ins)
-    #cv2.imwrite('c_img.png', c_img)
-    
-    for x in range(w - window_size):
-        for y in range(h - window_size):
-            xx = I_xx[y:y + window_size,
-                      x:x + window_size]
-            yy = I_yy[y:y + window_size,
-                      x:x + window_size] 
-            xy = I_xy[y:y + window_size,
-                      x:x + window_size]
+    for x in range(offset, w - offset):
+        for y in range(offset, h - offset):
+            xx = I_xx[y - offset:y + offset + 1,
+                      x - offset:x + offset + 1]
+            yy = I_yy[y - offset:y + offset + 1,
+                      x - offset:x + offset + 1]
+            xy = I_xy[y - offset:y + offset + 1,
+                      x - offset:x + offset + 1]
             
             # w * I - smooth 
             xx = np.multiply(kernel, xx)
@@ -89,15 +81,11 @@ def harris_matrix(image, window_size, sigma):
             trace = Sxx + Syy
             c = det / (trace + 1e-8) # avoiding dividing by zero
             
-            if c > 3950:
-                tmp[y + offset, x + offset] = c
-            corner_list.append([y + offset, x + offset, c])
+            if c > 1000:
+                tmp[y - offset, x - offset] = c
+                corner_list.append([y - offset, x - offset, c])
             
-    
-    corner_list = np.array(corner_list).reshape(h - window_size,
-                                                w - window_size,
-                                                3)
-
+    # filter three neighbours
     max_i = filters.maximum_filter(tmp, (3,3))
     tmp *= (tmp == max_i)
     max_x, max_y = np.nonzero(tmp)
@@ -105,11 +93,11 @@ def harris_matrix(image, window_size, sigma):
     colored_image = color_image(image, indices)
     cv2.imwrite('result.png', colored_image)
     
-    return corner_list, colored_image, tmp, ins
+    return corner_list, colored_image, tmp#, ins
     
 if __name__ == '__main__':
-    image = cv2.imread('../image_sets/yosemite/Yosemite1.jpg')
+    image = cv2.imread('../checkerboard.png')
     gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    c, colored_image, tmp, ins = harris_matrix(image,
+    c, colored_image, tmp = harris_matrix(image,
                       5,
                       30)
