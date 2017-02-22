@@ -31,6 +31,16 @@ class Harris(object):
                         ]
     
     def harris_matrix(self):
+        
+        def is_edge_close(h, w, y, x):
+            is_edge_close = False
+            if (y - 16) <= 0 or (y + 16) >= h:
+                is_edge_close =  True
+            if (x - 16) <= 0 or (x + 16) >= w:
+                is_edge_close =  True
+            
+            return is_edge_close
+        
         gray_image = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
         self.I_x, self.I_y = compute_derivatives(gray_image)
         I_xx = self.I_x ** 2
@@ -69,20 +79,24 @@ class Harris(object):
                 trace = Sxx + Syy
                 c = det / (trace + 1e-8) # avoiding dividing by zero
                 
-                if c > 1000:
-                    corners_map[y - offset, x - offset] = c
-                    corner_list.append([y - offset, x - offset, c])
+                # make sure we don't color points at the edges
+                if c > 3800 and not is_edge_close(h, w, y, x):
+                    #corners_map[y - offset, x - offset] = c
+                    #corner_list.append([y - offset, x - offset, c])
+                    corners_map[y, x] = c
+                    corner_list.append([y, x, c])
                 
         # filter three neighbours
         max_i = filters.maximum_filter(corners_map, (5,5))
         corners_map *= (corners_map == max_i)
-        max_x, max_y = np.nonzero(corners_map)
-        indices = [pos for pos in zip(max_x, max_y)]
+        max_y, max_x = np.nonzero(corners_map)
+        indices = [pos for pos in zip(max_y, max_x)]
         self.colored_image = color_image(self.image, indices)
-        # cv2.imwrite('result.png', self.colored_image)
+        cv2.imwrite('result.png', self.colored_image)
         self.corner_list = corner_list
         self.corners_map = corners_map
-    
+        
+
 if __name__ == '__main__':
     #image = cv2.imread('../checkerboard.png')
     image = cv2.imread('img1.ppm')

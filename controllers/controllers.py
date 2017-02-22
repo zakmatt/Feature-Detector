@@ -30,9 +30,9 @@ def compute_derivatives(image):
 def color_image(image, indices):
     colored_image = image.copy()
     for position in indices:
-        x, y = position
-        colored_image[x, y, 0] = 0
-        colored_image[x, y, 1] = 0
-        colored_image[x, y, 2] = 255
+        y, x = position
+        colored_image[y, x, 0] = 0
+        colored_image[y, x, 1] = 0
+        colored_image[y, x, 2] = 255
                      
     return colored_image

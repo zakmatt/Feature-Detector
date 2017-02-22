@@ -19,7 +19,7 @@ def get_descriptor(harris, bin_size):
         
         weights = np.array([[neighbour_gradient_matrix[y, x][2] for x in range(bin_size)]
                         for y in range(bin_size)]) / weights_sum
-        corner_theta = gradient_matrix[p, q][3]
+        corner_theta = (gradient_matrix[p, q])[3]
         thetas = np.array([[neighbour_gradient_matrix[y, x][3] - corner_theta 
                             for x in range(bin_size)] for y in range(bin_size)])
         bins = [i*0.25*pi for i in range(9)]
@@ -33,7 +33,7 @@ def get_descriptor(harris, bin_size):
     gradient_matrix = harris.gradient_matrix
     all_neighbourhoods = []
     for corner in corner_list:
-        x, y, c = corner
+        y, x, c = corner
         nearest_neighbourhood = []
         # take neighbours from [-bin;bin] range in
         # y and x axes
@@ -42,13 +42,13 @@ def get_descriptor(harris, bin_size):
                 nearest_neighbourhood.append(
                         create_histogram(
                                 gradient_matrix[
-                                        x + p:x + p + bin_size,
-                                        y + q:y + q + bin_size
+                                        y + p:y + p + bin_size,
+                                        x + q:x + q + bin_size
                                         ],
                                 gradient_matrix,
                                 bin_size,
-                                x + p + bin_size / 2,
-                                y + q + bin_size / 2
+                                y + p + bin_size / 2,
+                                x + q + bin_size / 2
                                 )
                         )
         all_neighbourhoods.append(nearest_neighbourhood)
@@ -58,11 +58,11 @@ def match_images(image_a, image_b):
     pass
 
 if __name__ == '__main__':
-    image = cv2.imread('../checkerboard.png')
-    #image = cv2.imread('img1.ppm')
+    #image = cv2.imread('../checkerboard.png')
+    image = cv2.imread('img1.ppm')
     gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     harris = Harris(image, 5, 30)
     harris.harris_matrix()
     harris.gradient_matrix()
     all_neighbourhoods = get_descriptor(harris, 4)
-    print(all_neighbourhoods.shape)
+    print(all_neighbourhoods[0,0])
