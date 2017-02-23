@@ -3,7 +3,7 @@ import cv2
 from harris import Harris
 import numpy as np
 
-def get_descriptor(harris, bin_size):
+def get_description(harris, bin_size):
     
     def create_histogram(neighbour_gradient_matrix,
                          gradient_matrix,
@@ -61,8 +61,8 @@ if __name__ == '__main__':
     #image = cv2.imread('../checkerboard.png')
     image = cv2.imread('img1.ppm')
     gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    harris = Harris(image, 5, 30)
+    harris = Harris(image, 5, 30, 2500)
     harris.harris_matrix()
     harris.gradient_matrix()
-    all_neighbourhoods = get_descriptor(harris, 4)
+    all_neighbourhoods = get_description(harris, 4)
     print(all_neighbourhoods[0,0])
