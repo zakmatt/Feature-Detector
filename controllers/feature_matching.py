@@ -10,7 +10,7 @@ def get_image_description(image, window_size, sigma, threshold, bin_size):
     harris.harris_matrix()
     harris.gradient_matrix()
     description = get_description(harris, bin_size)
-    return description
+    return description, harris.corner_list, harris.key_points
 
 def match_features(features_1, features_2, ratio_threshold):
     
@@ -21,6 +21,7 @@ def match_features(features_1, features_2, ratio_threshold):
         return distance
     
     features_matches = []
+    matches = []
     flag = False
     # second option - create matrix. rows features_1, columns features_2
     # subtract horizontal (f_2) from vertical (f_1) and get a matrix
@@ -32,15 +33,17 @@ def match_features(features_1, features_2, ratio_threshold):
             
             distance = feature_distance(feature_1, feature_2)
             
+            if distance > 2:
+                continue
             
-            if distance <= best_match:
+            if distance < best_match:
                 second_best_match = best_match
                 best_match = distance
                 flag = True
             # what if distance is equal second_best_match
             # and the computet ratio is also above
             # the threshold? It gives a good matching point
-            elif distance <= second_best_match:
+            elif distance < second_best_match:
                 second_best_match = distance
                 flag = True
                 
@@ -48,16 +51,34 @@ def match_features(features_1, features_2, ratio_threshold):
                 continue
                 
             if flag:
-                ratio = 1.0 * second_best_match / best_match
+                ratio = 1.0 * best_match / second_best_match
                 flag = False
-                if ratio < ratio_threshold:
+                if ratio < ratio_threshold: #and distance < 0.3:
+                    print(distance)
                     features_matches.append(
                             {'feature_a': pos_feat_1,
                              'feature_b': pos_feat_2,
-                             'ratio': ratio
+                             #'ratio': ratio
+                             'distance': distance
                              }
                             )
-    return np.array(features_matches)
+                    matches.append(
+                            cv2.DMatch(pos_feat_1, pos_feat_2, distance)
+                            )
+    return np.array(features_matches), matches
+
+def print_points(feature_matches, corners_a, corners_b):
+    # each element is [x, y, c] - coordinates and corner strength
+    corners_a = [(element[0], element[1]) for element in corners_a]
+    corners_b = [(element[0], element[1]) for element in corners_b]
+    for features in feature_matches:
+        feature_a = features['feature_a']
+        feature_b = features['feature_b']
+        print('positions: ', feature_a, feature_b)
+        print('coordinate of feature_a : (%d, %d)' % (corners_a[feature_a]))
+        print('coordinate of feature_b : (%d, %d)' % (corners_b[feature_b]))
+        
+        
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -100,13 +121,26 @@ if __name__ == '__main__':
     
     image_1 = cv2.imread(image_1)
     image_2 = cv2.imread(image_2)
-    description_1 = get_image_description(
+    description_1, corners_1, key_points_1 = get_image_description(
             image_1, window_size, sigma, threshold, bin_size
             )
-    description_2 = get_image_description(
+    description_2, corners_2, key_points_2 = get_image_description(
             image_2, window_size, sigma, threshold, bin_size
             )
-    feature_matches = match_features(description_1, 
+    feature_matches, matches = match_features(description_1, 
                                      description_2, 
                                      ratio_threshold)
     print(feature_matches.shape)
+    feature_matches = sorted(feature_matches,key = lambda x:x['distance'])
+    feature_matches = feature_matches[:10]
+    matches = sorted(matches, key = lambda x:x.distance)
+    matches = matches[:10]
+    print_points(feature_matches, corners_1, corners_2)
+    im3 = cv2.drawMatches(image_1, 
+                          key_points_1,
+                          image_2, 
+                          key_points_2, 
+                          matches,
+                          None,
+                          flags = 2)
+    cv2.imwrite('cement.jpg', im3)

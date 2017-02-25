@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 from controllers import *
 import cv2
-from math import atan2
 import numpy as np
 from numpy import linalg as LA
 from scipy.ndimage import filters
@@ -28,7 +27,7 @@ class Harris(object):
                         d_x,
                         d_y,
                         LA.norm([d_x, d_y]),
-                        atan2(d_y, d_x)
+                        cv2.fastAtan2(d_y, d_x)
                         ]
     
     def harris_matrix(self):
@@ -52,7 +51,7 @@ class Harris(object):
         kernel = GaussianKernel(self.window_size, self.sigma)
         offset = self.window_size // 2
         corner_list = []
-        key_points = []
+        self.key_points = []
         corners_map = np.zeros((h,w))
         
         for x in range(offset, w - offset):
@@ -79,12 +78,13 @@ class Harris(object):
                 det = (Sxx * Syy) - (Sxy ** 2)
                 trace = Sxx + Syy
                 c = det / (trace + 1e-8) # avoiding dividing by zero
-                
                 # make sure we don't color points at the edges
+                
+        '''
                 if c > self.threshold and not is_edge_close(h, w, y, x):
                     #corners_map[y - offset, x - offset] = c
                     #corner_list.append([y - offset, x - offset, c])
-                    key_points.append(cv2.KeyPoint(x, y, 15))
+                    self.key_points.append(cv2.KeyPoint(x, y, 15))
                     corners_map[y, x] = c
                     corner_list.append([y, x, c])
                 
@@ -92,18 +92,19 @@ class Harris(object):
         max_i = filters.maximum_filter(corners_map, (50,50))
         corners_map *= (corners_map == max_i)
         max_y, max_x = np.nonzero(corners_map)
-        indices = [pos for pos in zip(max_y, max_x)]
+        #indices = [pos for pos in zip(max_y, max_x)]
         #self.colored_image = color_image(self.image, indices)
-        output_image = cv2.drawKeypoints(self.image, key_points, self.image)
+        output_image = cv2.drawKeypoints(self.image, self.key_points, self.image)
         cv2.imwrite('result.png', output_image)
         self.corner_list = corner_list
         self.corners_map = corners_map
-        
+        '''
 
 if __name__ == '__main__':
     #image = cv2.imread('../checkerboard.png')
     image = cv2.imread('bicycle.bmp')
+    #image = cv2. imread('img1.ppm')
     gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    harris = Harris(image, 5, 30, 2500)
+    harris = Harris(image, 5, 5, 3000)
     harris.harris_matrix()
     harris.gradient_matrix()
