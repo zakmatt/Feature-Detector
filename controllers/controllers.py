@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import cv2
 from math import exp
 import numpy as np
 
@@ -23,9 +24,14 @@ def rescale(image):
     image = (image - current_min)/(current_max - current_min) * 255
     return image
 
+#def compute_derivatives(image):
+#    dI_x, dI_y = np.gradient(image)
+#    return (dI_x, dI_y)
+
 def compute_derivatives(image):
-    dI_x, dI_y = np.gradient(image)
-    return (dI_x, dI_y)
+    sobelx = cv2.Sobel(image,cv2.CV_64F,1,0,ksize=5)
+    sobely = cv2.Sobel(image,cv2.CV_64F,0,1,ksize=5)
+    return (sobelx, sobely)
 
 def color_image(image, indices):
     colored_image = image.copy()
@@ -36,3 +42,8 @@ def color_image(image, indices):
         colored_image[y, x, 2] = 255
                      
     return colored_image
+
+def open_image(image_path):
+    image = cv2.imread(image_path)
+    image = np.array(image, dtype = np.float32)
+    return image
