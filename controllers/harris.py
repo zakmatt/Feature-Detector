@@ -79,7 +79,29 @@ class Harris(object):
                 trace = Sxx + Syy
                 c = det / (trace + 1e-8) # avoiding dividing by zero
                 # make sure we don't color points at the edges
-                
+                corners_map[y, x] = c
+        
+        max_value = np.max(corners_map)
+        # threshold is calculated based on maximum value
+        self.threshold *= max_value
+        suppress_pos = corners_map < self.threshold
+        corners_map[suppress_pos] = 0.0
+                   
+        # add filtering
+        max_i = filters.maximum_filter(corners_map, (5,5))
+        corners_map *= (corners_map == max_i)
+        
+        max_y, max_x = np.nonzero(corners_map)
+        indices = [pos for pos in zip(max_y, max_x)]
+        for index in indices:
+            y = index[0]
+            x = index[1]
+            self.key_points.append(cv2.KeyPoint(x, y, 15))
+            corner_list.append([y, x, c])
+            
+        #output_image = cv2.drawKeypoints(self.image, self.key_points, self.image)
+        #cv2.imwrite('result.png', output_image)
+        
         '''
                 if c > self.threshold and not is_edge_close(h, w, y, x):
                     #corners_map[y - offset, x - offset] = c
@@ -105,6 +127,6 @@ if __name__ == '__main__':
     image = cv2.imread('bicycle.bmp')
     #image = cv2. imread('img1.ppm')
     gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    harris = Harris(image, 5, 5, 3000)
+    harris = Harris(image, 5, 5, 0.3)
     harris.harris_matrix()
     harris.gradient_matrix()
