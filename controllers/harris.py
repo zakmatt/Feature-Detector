@@ -31,22 +31,111 @@ class Harris(object):
                         LA.norm([d_x, d_y]),
                         cv2.fastAtan2(d_y, d_x)
                         ]
-    
-    def adaptive_non_max_suppression(mask):
-        r = 0
-        max_value = np.max(mask)
-    
-    
-    def harris_matrix(self, f_name):
-        
-        def is_edge_close(h, w, y, x):
-            is_edge_close = False
-            if (y - 16) <= 0 or (y + 16) >= h:
-                is_edge_close =  True
-            if (x - 16) <= 0 or (x + 16) >= w:
-                is_edge_close =  True
             
-            return is_edge_close
+    def harris_matrix_adaptive(self, f_name):
+        
+        def adaptive_non_max_suppression(corner_list, max_value):
+            
+            def identical(corner_1, corner_2):
+                if corner_1[0] != corner_2[0]:
+                    return False
+                elif corner_1[1] != corner_2[1]:
+                    return False
+                elif corner_1[2] != corner_2[2]:
+                    return False
+                else:
+                    return True
+                    
+            def distance(corner_1, corner_2):
+                y = np.abs(corner_1[0] - corner_2[0])
+                x = np.abs(corner_1[1] - corner_2[1])
+                r = np.sqrt(x ** 2 + y ** 2)
+                return r
+            
+            adaptive_suppresion_list = []
+            # y
+            # x
+            # c
+            for corner_1 in corner_list:
+                y = corner_1[0]
+                x = corner_1[1]
+                if corner_1[2] == max_value:
+                    adaptive_suppresion_list.append([y, x, np.inf])
+                    continue
+                
+                current_radius = np.inf
+                for corner_2 in corner_list:
+                    if identical(corner_1, corner_2):
+                        continue
+                    
+                    r = distance(corner_1, corner_2)
+                    if corner_2[2] > corner_1[2] and r < current_radius:
+                        current_radius = r
+                        
+                adaptive_suppresion_list.append([y, x, current_radius])
+                
+            adaptive_suppresion_list = sorted(adaptive_suppresion_list, 
+                                              key = lambda x:x[2],
+                                              reverse = True)
+            return np.array(adaptive_suppresion_list)    
+        
+        gray_image = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
+        
+        # DoG filtering
+        kernel_dog = d_o_g(21, 1.5, 1.0)
+        gray_image = cv2.filter2D(gray_image, -1, kernel_dog)
+        
+        self.I_x, self.I_y = compute_derivatives(gray_image)
+        I_xx = self.I_x ** 2
+        I_yy = self.I_y ** 2
+        I_xy = self.I_x * self.I_y
+        
+        h, w, _ = self.image.shape
+        kernel = GaussianKernel(self.window_size, self.sigma)
+        corner_list = []
+        self.key_points = []
+        corners_map = np.zeros((h,w))
+        
+        I_xx = np.array(cv2.filter2D(I_xx, -1, kernel), dtype = np.float32)
+        I_yy = np.array(cv2.filter2D(I_yy, -1, kernel), dtype = np.float32)
+        I_xy = np.array(cv2.filter2D(I_xy, -1, kernel), dtype = np.float32)
+        
+        # compute Harris feature strength, avoiding divide by zero
+        imgH = (I_xx * I_yy - I_xy**2) / (I_xx + I_yy + 1e-8)
+        
+        # exclude points near the image border
+        imgH[:16, :] = 0
+        imgH[-16:, :] = 0
+        imgH[:, :16] = 0
+        imgH[:, -16:] = 0
+            
+        max_value = np.max(imgH)
+        self.threshold *= max_value
+        suppress_pos = imgH < self.threshold
+        imgH[suppress_pos] = 0.0
+        
+        max_y, max_x = np.nonzero(imgH)
+        indices = [pos for pos in zip(max_y, max_x)]
+        for index in indices:
+            y = index[0]
+            x = index[1]
+            corner_list.append([y, x, imgH[y, x]])
+            
+        adaptive_corners = adaptive_non_max_suppression(corner_list,
+                                                             max_value)
+        
+        adaptive_corners = adaptive_corners[:30]
+        for corner in adaptive_corners:
+            y = corner[0]
+            x = corner[1]
+            self.key_points.append(cv2.KeyPoint(x, y, 15))
+            
+        self.corner_list = adaptive_corners
+        self.corners_map = corners_map
+        output_image = cv2.drawKeypoints(rescale(self.image).astype('uint8'), self.key_points, self.image)
+        cv2.imwrite(f_name, output_image)  
+    '''
+    def harris_matrix(self, f_name):
         
         gray_image = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
         
@@ -95,7 +184,6 @@ class Harris(object):
             y = index[0]
             x = index[1]
             self.key_points.append(cv2.KeyPoint(x, y, 15))
-            #if not is_edge_close(h, w, y, x):
             corner_list.append([y, x, imgH[y, x]])
         
         self.corner_list = corner_list
@@ -103,12 +191,12 @@ class Harris(object):
         print(len(corner_list))
         output_image = cv2.drawKeypoints(rescale(self.image).astype('uint8'), self.key_points, self.image)
         cv2.imwrite(f_name, output_image)
-
+    '''
 if __name__ == '__main__':
     #image = cv2.imread('../checkerboard.png')
-    image = cv2.imread('im1.jpg')
-    #image = open_image('Yosemite1.jpg')
+    image = open_image('Yosemite1.jpg')
     gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     harris = Harris(image, 5, 1, 0.3)
-    harris.harris_matrix('Yosemite1_result.jpg')
-    harris.gradient_matrix()
+    harris.harris_matrix_adaptive('placki.jpg')
+    #harris.harris_matrix('Yosemite1_result.jpg')
+    #harris.gradient_matrix()
