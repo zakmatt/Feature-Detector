@@ -17,6 +17,12 @@ def GaussianKernel(size, sigma):
     gaussian_filter /= np.sum(gaussian_filter)
     return gaussian_filter
 
+# DoG - Difference of Gaussians
+def d_o_g(k_size, sigma_1, sigma_2):
+    kernel_1 = GaussianKernel(k_size, sigma_1)
+    kernel_2 = GaussianKernel(k_size, sigma_2)
+    return kernel_1 - kernel_2
+
 def rescale(image):
     image = image.astype('float32')
     current_min = np.min(image)

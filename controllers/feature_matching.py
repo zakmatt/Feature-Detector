@@ -9,6 +9,7 @@ import numpy as np
 def get_image_description(image, window_size, sigma, threshold,f_name):
     harris = Harris(image, window_size, sigma, threshold)
     harris.harris_matrix(f_name)
+    #harris.harris(f_name)
     harris.gradient_matrix()
     description = get_description(harris)
     return description, harris.corner_list, harris.key_points
