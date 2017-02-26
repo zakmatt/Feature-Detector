@@ -52,14 +52,14 @@ def get_description(harris):
         # take neighbours
         # y and x axes
         # 16 by 16 window
+        angle = rotation_angle(
+                    gradient_matrix[
+                            y - 8: y + 8,
+                            x - 8: x + 8
+                            ]
+                )
         for p in range(-8, 8, 4):
             for q in range(-8, 8, 4):
-                angle = rotation_angle(
-                        gradient_matrix[
-                                        y + p:y + p + 4,
-                                        x + q:x + q + 4
-                                        ]
-                        )
                 nearest_neighbourhood.append(
                         create_histogram(
                                 gradient_matrix[
