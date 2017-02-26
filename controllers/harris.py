@@ -30,6 +30,11 @@ class Harris(object):
                         cv2.fastAtan2(d_y, d_x)
                         ]
     
+    def adaptive_non_max_suppression(mask):
+        r = 0
+        max_value = np.max(mask)
+    
+    
     def harris_matrix(self, f_name):
         
         def is_edge_close(h, w, y, x):
@@ -133,8 +138,7 @@ class Harris(object):
         suppress_pos = imgH < self.threshold
         imgH[suppress_pos] = 0.0
         # non-maximum suppression in 5x5 regions
-        print(imgH)
-        maxH = filters.maximum_filter(imgH, (5,5))
+        maxH = filters.maximum_filter(imgH, (3,3))
         imgH = imgH * (imgH == maxH)
     
         max_y, max_x = np.nonzero(imgH)
@@ -152,7 +156,7 @@ class Harris(object):
         self.corner_list = corner_list
         output_image = cv2.drawKeypoints(rescale(self.image).astype('uint8'), self.key_points, self.image)
         cv2.imwrite(f_name, output_image)
-        print(len(corner_list))
+        #print(len(corner_list))
         
 if __name__ == '__main__':
     #image = cv2.imread('../checkerboard.png')

@@ -6,7 +6,23 @@ import numpy as np
 
 def get_description(harris):
     
-    def create_histogram(neighbour_gradient_matrix):
+    def rotation_angle(neighbour_gradient_matrix):
+        histogram = np.zeros(36)
+        h, w, _ = neighbour_gradient_matrix.shape
+        
+        for y in range(h):
+            for x in range(w):
+                element = neighbour_gradient_matrix[y, x]
+                element_angle = element[3]
+                bin_position = int(element_angle/10)
+                histogram[bin_position] += element[2]
+                
+        peak_bin = np.argmax(histogram)
+        approximate_angle = peak_bin * 10 + 5
+        
+        return approximate_angle
+    
+    def create_histogram(neighbour_gradient_matrix, rotation_angle):
         # vector of 8 bins
         histogram = np.zeros(8)
         #d_x,
@@ -18,7 +34,12 @@ def get_description(harris):
         for y in range(h):
             for x in range(w):
                 element = neighbour_gradient_matrix[y, x]
-                bin_position = int(element[3] / 45) % 8
+                angle = element[3] - rotation_angle
+                if angle < 0:
+                    angle += 360
+                elif angle > 360:
+                    angle -= 360
+                bin_position = int(angle / 45) % 8
                 histogram[bin_position] += element[2]
         return histogram
         
@@ -33,12 +54,19 @@ def get_description(harris):
         # 16 by 16 window
         for p in range(-8, 8, 4):
             for q in range(-8, 8, 4):
+                angle = rotation_angle(
+                        gradient_matrix[
+                                        y + p:y + p + 4,
+                                        x + q:x + q + 4
+                                        ]
+                        )
                 nearest_neighbourhood.append(
                         create_histogram(
                                 gradient_matrix[
                                         y + p:y + p + 4,
                                         x + q:x + q + 4
-                                        ]
+                                        ],
+                                angle
                                 )
                         )
         all_neighbourhoods.append(nearest_neighbourhood)

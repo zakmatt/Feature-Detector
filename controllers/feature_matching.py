@@ -14,13 +14,18 @@ def get_image_description(image, window_size, sigma, threshold,f_name):
     description = get_description(harris)
     return description, harris.corner_list, harris.key_points
 
+def histogram_to_vector(feature_histogram):
+    feature_histogram = feature_histogram.flatten()
+    feature_histogram = feature_histogram / (np.sqrt(np.sum(feature_histogram ** 2)) + 1e-8)
+    bright_points = feature_histogram > 0.2
+    feature_histogram[bright_points] = 0.2
+    return feature_histogram
+
 def match_features(features_1, features_2, ratio_threshold):
     
     def feature_distance(feature_1, feature_2):
-        feature_1 = feature_1.flatten()
-        feature_1 = feature_1 / (np.sqrt(np.sum(feature_1 ** 2)) + 1e-8)
-        feature_2 = feature_2.flatten()
-        feature_2 = feature_2 / (np.sqrt(np.sum(feature_2 ** 2)) + 1e-8)
+        feature_1 = histogram_to_vector(feature_1)
+        feature_2 = histogram_to_vector(feature_2)
         distance = ((feature_1 - feature_2) ** 2).sum()
 
         return distance
