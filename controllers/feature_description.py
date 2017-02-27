@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import cv2
 from controllers import *
-from harris import Harris
+from controllers.harris import Harris
 import numpy as np
 
 def get_description(harris):

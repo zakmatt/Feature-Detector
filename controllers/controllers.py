@@ -53,3 +53,8 @@ def open_image(image_path):
     image = cv2.imread(image_path)
     image = np.array(image, dtype = np.float32)
     return image
+
+def save_image(image, path):
+    image = rescale(image)
+    image = np.array(image, dtype = np.uint8)
+    cv2.imwrite(path, image)

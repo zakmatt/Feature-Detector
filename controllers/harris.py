@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from controllers import *
+from controllers.controllers import *
 import cv2
 import numpy as np
 from numpy import linalg as LA
@@ -32,7 +32,7 @@ class Harris(object):
                         cv2.fastAtan2(d_y, d_x)
                         ]
             
-    def harris_matrix_adaptive(self, f_name):
+    def harris_matrix_adaptive(self):
         
         def adaptive_non_max_suppression(corner_list, max_value):
             
@@ -101,30 +101,32 @@ class Harris(object):
         I_xy = np.array(cv2.filter2D(I_xy, -1, kernel), dtype = np.float32)
         
         # compute Harris feature strength, avoiding divide by zero
-        imgH = (I_xx * I_yy - I_xy**2) / (I_xx + I_yy + 1e-8)
+        harris_matrix = (I_xx * I_yy - I_xy ** 2) / (I_xx + I_yy + 1e-8)
         
         # exclude points near the image border
-        imgH[:16, :] = 0
-        imgH[-16:, :] = 0
-        imgH[:, :16] = 0
-        imgH[:, -16:] = 0
+        harris_matrix[:, :16] = 0
+        harris_matrix[:, -16:] = 0
+        harris_matrix[:16, :] = 0
+        harris_matrix[-16:, :] = 0
             
-        max_value = np.max(imgH)
+        max_value = np.max(harris_matrix)
         self.threshold *= max_value
-        suppress_pos = imgH < self.threshold
-        imgH[suppress_pos] = 0.0
+        suppress_pos = harris_matrix < self.threshold
+        harris_matrix[suppress_pos] = 0.0
         
-        max_y, max_x = np.nonzero(imgH)
+        max_y, max_x = np.nonzero(harris_matrix)
         indices = [pos for pos in zip(max_y, max_x)]
         for index in indices:
             y = index[0]
             x = index[1]
-            corner_list.append([y, x, imgH[y, x]])
+            corner_list.append([y, x, harris_matrix[y, x]])
             
+        print('get corners')
         adaptive_corners = adaptive_non_max_suppression(corner_list,
-                                                             max_value)
+                                                        max_value)
+        print('corners found')
         
-        adaptive_corners = adaptive_corners[:30]
+        adaptive_corners = adaptive_corners[:50]
         for corner in adaptive_corners:
             y = corner[0]
             x = corner[1]
@@ -133,13 +135,10 @@ class Harris(object):
         self.corner_list = adaptive_corners
         self.corners_map = corners_map
         output_image = cv2.drawKeypoints(rescale(self.image).astype('uint8'), self.key_points, self.image)
-        cv2.imwrite(f_name, output_image)  
+        self.output_image = output_image
 
 if __name__ == '__main__':
-    #image = cv2.imread('../checkerboard.png')
     image = open_image('Yosemite1.jpg')
     gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     harris = Harris(image, 5, 1, 0.3)
-    harris.harris_matrix_adaptive('placki.jpg')
-    #harris.harris_matrix('Yosemite1_result.jpg')
-    #harris.gradient_matrix()
+    harris.harris_matrix_adaptive()

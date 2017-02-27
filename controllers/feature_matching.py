@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
 import argparse
-from controllers import *
+from controllers.controllers import *
 import cv2
-from harris import Harris
-from feature_description import get_description
+from controllers.harris import Harris
+from controllers.feature_description import get_description
 import numpy as np
 
-def get_image_description(image, window_size, sigma, threshold,f_name):
+def get_image_description(image, window_size, sigma, threshold):
     harris = Harris(image, window_size, sigma, threshold)
-    harris.harris_matrix_adaptive(f_name)
-    #harris.harris_matrix(f_name)
-    #harris.harris(f_name)
+    harris.harris_matrix_adaptive()
     harris.gradient_matrix()
     description = get_description(harris)
     return description, harris.corner_list, harris.key_points
@@ -43,10 +41,7 @@ def match_features(features_1, features_2, ratio_threshold):
         for pos_feat_2, feature_2 in enumerate(features_2):
             
             distance = feature_distance(feature_1, feature_2)
-            #if distance > 0.3:
-            #    continue
-            #print(pos_feat_1, pos_feat_2, distance)
-            #print(distance)
+            
             if distance < best_match:
                 second_best_match = best_match
                 best_match = distance
@@ -72,7 +67,7 @@ def match_features(features_1, features_2, ratio_threshold):
                     matches.append(
                             cv2.DMatch(pos_feat_1, pos_feat_2, distance)
                             )
-    return np.array(features_matches), matches
+    return matches
 
 def print_points(feature_matches, corners_a, corners_b):
     # each element is [x, y, c] - coordinates and corner strength
@@ -124,10 +119,10 @@ if __name__ == '__main__':
     image_1 = open_image(image_1)
     image_2 = open_image(image_2)
     description_1, corners_1, key_points_1 = get_image_description(
-            image_1, window_size, sigma, threshold, 'im1.jpg'
+            image_1, window_size, sigma, threshold
             )
     description_2, corners_2, key_points_2 = get_image_description(
-            image_2, window_size, sigma, threshold, 'im2.jpg'
+            image_2, window_size, sigma, threshold
             )
     
     feature_matches, matches = match_features(description_1, 
